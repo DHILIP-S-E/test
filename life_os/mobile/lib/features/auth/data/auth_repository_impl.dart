@@ -1,16 +1,18 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../domain/auth_repository.dart';
 import '../domain/user.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final Dio _dio;
+  final FlutterSecureStorage _storage;
 
-  AuthRepositoryImpl(this._dio);
+  AuthRepositoryImpl(this._dio, this._storage);
 
   @override
   Future<User> login(String email, String password) async {
     try {
-      await _dio.post(
+      final response = await _dio.post(
         '/auth/login/access-token',
         data: {
           'username': email,
@@ -21,8 +23,8 @@ class AuthRepositoryImpl implements AuthRepository {
         ),
       );
 
-      // final token = response.data['access_token'];
-      // TODO: Save token to secure storage
+      final token = response.data['access_token'];
+      await _storage.write(key: 'access_token', value: token);
 
       // For now, return a dummy user as we don't have a /me endpoint yet in this example
       return User(id: '1', email: email, name: 'User');
@@ -47,5 +49,9 @@ class AuthRepositoryImpl implements AuthRepository {
     } catch (e) {
       throw Exception('Failed to register: $e');
     }
+  }
+
+  Future<void> logout() async {
+    await _storage.delete(key: 'access_token');
   }
 }
